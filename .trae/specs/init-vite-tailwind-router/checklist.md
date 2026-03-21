@@ -1,0 +1,5 @@
+- [x] 已存在可运行的 React + TypeScript + Vite 项目结构
+- [x] Tailwind CSS 已配置并在页面中生效
+- [x] react-router-dom 已安装并完成基础路由配置
+- [x] /、/game、/result、/auth 路由可访问并渲染页面
+- [x] 本地开发服务器可正常启动且无关键错误
