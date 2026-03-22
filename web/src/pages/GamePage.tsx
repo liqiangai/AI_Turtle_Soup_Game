@@ -28,25 +28,37 @@ export function GamePage() {
     return stories.find((s) => s.id === id);
   }, [id]);
 
+  const storyId = story?.id;
+
   const [confirm, setConfirm] = useState<null | "reveal" | "abandon">(null);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [isHintOpen, setIsHintOpen] = useState(false);
+  const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [submitText, setSubmitText] = useState("");
 
   useEffect(() => {
-    if (!story) return;
+    if (!storyId) return;
     try {
       sessionStorage.setItem("gameStatus", "in_progress" satisfies TGameStatus);
       sessionStorage.removeItem("endReason");
+      sessionStorage.setItem("hintLevel", "0");
       sessionStorage.removeItem("lastStoryId");
       sessionStorage.removeItem("lastMessages");
     } catch {
       void 0;
     }
-  }, [story?.id]);
+    setHintLevel(0);
+    setSubmitText("");
+    setIsHintOpen(false);
+    setIsSubmitOpen(false);
+  }, [storyId]);
 
   function persistEndState(endReason: TEndReason, persistMessages: boolean) {
     if (!story) return;
     try {
       sessionStorage.setItem("gameStatus", "ended" satisfies TGameStatus);
       sessionStorage.setItem("endReason", endReason);
+      sessionStorage.setItem("hintLevel", String(hintLevel));
       if (persistMessages) {
         sessionStorage.setItem("lastStoryId", story.id);
         sessionStorage.setItem("lastMessages", JSON.stringify(messages));
@@ -71,6 +83,40 @@ export function GamePage() {
   function handleAbandonGame() {
     persistEndState("abandoned_by_user", false);
     navigate("/");
+  }
+
+  function handleUnlockHint() {
+    if (!story) return;
+    const nextLevel = Math.min(3, hintLevel + 1);
+    setHintLevel(nextLevel);
+    try {
+      sessionStorage.setItem("hintLevel", String(nextLevel));
+    } catch {
+      void 0;
+    }
+    setIsHintOpen(true);
+  }
+
+  function handleSubmitSolution() {
+    setIsSubmitOpen(true);
+  }
+
+  function evaluateSolution(text: string) {
+    if (!story) return { ok: false, hitCount: 0 };
+    const t = text.trim();
+    if (!t) return { ok: false, hitCount: 0 };
+    const hitCount = story.solutionKeywords.filter((k) => t.includes(k)).length;
+    const ok = hitCount >= 2 || (hintLevel >= 2 && hitCount >= 1);
+    return { ok, hitCount };
+  }
+
+  function finalizeSolved() {
+    if (!story) return;
+    persistEndState("solved_by_submit", true);
+    const search = new URLSearchParams({ storyId: story.id });
+    navigate(`/result?${search.toString()}`, {
+      state: { storyId: story.id, messages, endReason: "solved_by_submit" },
+    });
   }
 
   async function handleSend(content: string) {
@@ -101,6 +147,21 @@ export function GamePage() {
       setIsPending(false);
     }
   }
+
+  const questionCount = useMemo(
+    () => messages.filter((m) => m.role === "user").length,
+    [messages],
+  );
+  const targetQuestions = 15;
+  const progressPct = Math.round((hintLevel / 3) * 100);
+
+  const revealedKeyPoints = useMemo(() => {
+    if (!story) return [];
+    const total = story.keyPoints.length;
+    const count =
+      hintLevel <= 0 ? 0 : hintLevel === 1 ? 3 : hintLevel === 2 ? 5 : total;
+    return story.keyPoints.slice(0, Math.min(total, count));
+  }, [hintLevel, story]);
 
   const difficultyLabel =
     story?.difficulty === "easy"
@@ -158,6 +219,18 @@ export function GamePage() {
                   <div className="mt-1 text-xs text-slate-400">
                     只回答：是 / 否 / 无关
                   </div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                    <span>线索 Level {hintLevel}/3</span>
+                    <span>
+                      提问 {questionCount}/{targetQuestions}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-amber-400 transition-[width] duration-200 ease-out"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
                 </div>
                 <div className="mt-2 flex gap-2 sm:mt-0">
                   <button
@@ -192,6 +265,26 @@ export function GamePage() {
                 messages={messages}
                 isPending={isPending}
                 onSend={handleSend}
+                footerActions={
+                  story ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleUnlockHint}
+                        className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900"
+                      >
+                        查看线索
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSubmitSolution}
+                        className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-200 shadow-lg transition hover:border-amber-300/40 hover:bg-amber-400/15"
+                      >
+                        提交还原
+                      </button>
+                    </>
+                  ) : null
+                }
               />
             </div>
             </div>
@@ -233,6 +326,116 @@ export function GamePage() {
                       className="flex-1 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-300"
                     >
                       {confirm === "reveal" ? "确认查看" : "确认结束"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {isHintOpen ? (
+              <div className="fixed inset-0 z-50">
+                <button
+                  type="button"
+                  className="absolute inset-0 bg-black/60"
+                  onClick={() => setIsHintOpen(false)}
+                  aria-label="关闭"
+                />
+                <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-950/90 p-6 shadow-2xl backdrop-blur">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-base font-semibold text-amber-200">
+                        线索（Level {hintLevel}/3）
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
+                        仅展示关键点标题，不含解释。
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsHintOpen(false)}
+                      className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 transition hover:bg-slate-900"
+                    >
+                      关闭
+                    </button>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+                    {revealedKeyPoints.length ? (
+                      <div className="space-y-2 text-sm text-slate-100">
+                        {revealedKeyPoints.map((kp, idx) => (
+                          <div key={idx} className="flex gap-2">
+                            <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
+                            <div className="min-w-0">{kp}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-slate-300">
+                        暂无线索。点击“查看线索”解锁 Level 1。
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {isSubmitOpen ? (
+              <div className="fixed inset-0 z-50">
+                <button
+                  type="button"
+                  className="absolute inset-0 bg-black/60"
+                  onClick={() => setIsSubmitOpen(false)}
+                  aria-label="关闭"
+                />
+                <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-950/90 p-6 shadow-2xl backdrop-blur">
+                  <div className="text-base font-semibold text-amber-200">
+                    提交还原
+                  </div>
+                  <div className="mt-2 text-sm text-slate-200">
+                    写下你认为的真相（不需要太长，抓住关键因果即可）。
+                  </div>
+
+                  <div className="mt-4">
+                    <textarea
+                      value={submitText}
+                      onChange={(e) => setSubmitText(e.target.value)}
+                      rows={5}
+                      className="w-full resize-none rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/20"
+                      placeholder="例如：他打的不是雨伞，而是遮阳伞，所以挡不住雨…"
+                    />
+                  </div>
+
+                  <div className="mt-5 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsSubmitOpen(false)}
+                      className="flex-1 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-amber-400/30 hover:bg-slate-900"
+                    >
+                      继续推理
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const t = submitText.trim();
+                        const result = evaluateSolution(t);
+                        if (!t) return;
+                        setIsSubmitOpen(false);
+                        if (result.ok) {
+                          finalizeSolved();
+                          return;
+                        }
+                        setMessages((prev) => [
+                          ...prev,
+                          {
+                            role: "ai",
+                            content:
+                              "（系统提示）还原不够完整：建议补上“人物/物品/关键动作/为什么会发生”的因果链，再试一次。",
+                          },
+                        ]);
+                      }}
+                      className="flex-1 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-300"
+                    >
+                      提交
                     </button>
                   </div>
                 </div>

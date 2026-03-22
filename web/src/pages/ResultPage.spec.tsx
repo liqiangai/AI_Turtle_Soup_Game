@@ -40,7 +40,8 @@ describe("ResultPage", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "结束游戏" }));
+    fireEvent.click(screen.getByRole("button", { name: "查看汤底" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认查看" }));
 
     expect(screen.getByText("伞下的落汤鸡")).toBeInTheDocument();
     expect(screen.getByText("汤底揭晓")).toBeInTheDocument();
@@ -48,6 +49,8 @@ describe("ResultPage", () => {
 
     expect(sessionStorage.getItem("lastStoryId")).toBe("s_001_umbrella");
     expect(sessionStorage.getItem("lastMessages")).not.toBeNull();
+    expect(sessionStorage.getItem("endReason")).toBe("reveal_bottom");
+    expect(sessionStorage.getItem("gameStatus")).toBe("ended");
 
     fireEvent.click(screen.getByRole("button", { name: "展开（1）" }));
     expect(screen.getByText(/欢迎来到 AI 海龟汤/)).toBeInTheDocument();
@@ -56,5 +59,7 @@ describe("ResultPage", () => {
     expect(screen.getAllByText("LOBBY").length).toBeGreaterThan(0);
     expect(sessionStorage.getItem("lastStoryId")).toBeNull();
     expect(sessionStorage.getItem("lastMessages")).toBeNull();
+    expect(sessionStorage.getItem("endReason")).toBeNull();
+    expect(sessionStorage.getItem("gameStatus")).toBeNull();
   });
 });

@@ -49,7 +49,10 @@ export function ResultPage() {
   const stateEndReason = useMemo(() => {
     if (!isRecord(location.state)) return undefined;
     const v = location.state.endReason;
-    return v === "abandoned_by_user" || v === "reveal_bottom" || v === "unknown"
+    return v === "abandoned_by_user" ||
+      v === "reveal_bottom" ||
+      v === "solved_by_submit" ||
+      v === "unknown"
       ? v
       : undefined;
   }, [location.state]);
@@ -75,7 +78,10 @@ export function ResultPage() {
   const sessionEndReason = useMemo(() => {
     try {
       const v = sessionStorage.getItem("endReason");
-      return v === "abandoned_by_user" || v === "reveal_bottom" || v === "unknown"
+      return v === "abandoned_by_user" ||
+        v === "reveal_bottom" ||
+        v === "solved_by_submit" ||
+        v === "unknown"
         ? v
         : undefined;
     } catch {
@@ -98,6 +104,7 @@ export function ResultPage() {
     try {
       sessionStorage.removeItem("gameStatus");
       sessionStorage.removeItem("endReason");
+      sessionStorage.removeItem("hintLevel");
     } catch {
       void 0;
     }
@@ -108,6 +115,7 @@ export function ResultPage() {
     try {
       sessionStorage.removeItem("gameStatus");
       sessionStorage.removeItem("endReason");
+      sessionStorage.removeItem("hintLevel");
       sessionStorage.removeItem("lastStoryId");
       sessionStorage.removeItem("lastMessages");
     } catch {
@@ -152,6 +160,8 @@ export function ResultPage() {
                 ? "你选择查看汤底揭晓（已剧透）"
                 : endReason === "abandoned_by_user"
                   ? "你选择中途结束本局"
+                  : endReason === "solved_by_submit"
+                    ? "你提交了还原并通关"
                   : "本局已结束"}
             </div>
           ) : null}

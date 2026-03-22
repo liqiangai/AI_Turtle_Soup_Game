@@ -48,6 +48,26 @@ body {
     }
   }
 
+  @keyframes chatItemIn {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes chatSpinner {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
   .result-reveal-content {
     animation: resultRevealFade 420ms ease-out both;
   }
@@ -75,6 +95,14 @@ body {
     animation: resultRevealHighlight 520ms ease-out both;
   }
 
+  .chat-item-in {
+    animation: chatItemIn 180ms ease-out both;
+  }
+
+  .chat-spinner {
+    animation: chatSpinner 800ms linear infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .result-reveal-content {
       animation: none;
@@ -86,6 +114,12 @@ body {
     .result-reveal-mask,
     .result-reveal-highlight {
       display: none;
+    }
+
+    .chat-item-in,
+    .chat-spinner {
+      animation: none;
+      transform: none;
     }
   }
 }
