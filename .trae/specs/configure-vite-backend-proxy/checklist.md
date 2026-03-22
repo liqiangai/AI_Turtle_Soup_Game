@@ -1,0 +1,4 @@
+- [x] Vite 已配置 `/api` 代理到 `http://localhost:3000`
+- [x] 前端 `askAI()` 使用 `/api/chat`（相对路径）而非跨域绝对地址
+- [x] 开发环境提问时网络请求走 `/api/chat` 且成功返回
+- [x] `npm run build`（web）通过

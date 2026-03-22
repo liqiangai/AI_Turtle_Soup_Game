@@ -1,15 +1,67 @@
 import type { TStory } from "../data/stories";
 
-type TAiAskResponse = {
-  error?: {
-    message?: string;
-  };
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
-  }>;
+type TBackendChatSuccessResponse = {
+  ok: true;
+  answer: string;
+  message?: string;
 };
+
+type TBackendChatErrorResponse = {
+  ok: false;
+  message?: string;
+};
+
+const BACKEND_CHAT_ENDPOINT = "/api/chat";
+const ASK_AI_TIMEOUT_MS = 10_000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isProbablyHtml(value: string): boolean {
+  const s = value.trim().toLowerCase();
+  if (!s) return false;
+  return (
+    s.startsWith("<!doctype") ||
+    s.startsWith("<html") ||
+    s.includes("<body") ||
+    s.includes("<pre") ||
+    s.includes("</html>")
+  );
+}
+
+function pickBackendMessage(payload: unknown): string | null {
+  if (!isRecord(payload)) return null;
+
+  const message = payload.message;
+  if (typeof message === "string" && message.trim()) return message.trim();
+
+  const error = payload.error;
+  if (isRecord(error)) {
+    const errorMessage = error.message;
+    if (typeof errorMessage === "string" && errorMessage.trim()) {
+      return errorMessage.trim();
+    }
+  }
+
+  return null;
+}
+
+function isBackendChatSuccess(
+  payload: unknown,
+): payload is TBackendChatSuccessResponse {
+  return (
+    isRecord(payload) &&
+    payload.ok === true &&
+    typeof payload.answer === "string"
+  );
+}
+
+function isBackendChatError(
+  payload: unknown,
+): payload is TBackendChatErrorResponse {
+  return isRecord(payload) && payload.ok === false;
+}
 
 export async function askAI(question: string, story: TStory): Promise<string> {
   const q = question.trim();
@@ -21,54 +73,89 @@ export async function askAI(question: string, story: TStory): Promise<string> {
     throw new Error("问题太长了（最多 200 字），请简化后重试");
   }
 
-  const systemPrompt = `你是海龟汤主持人，必须严格依据“本局汤底”判定，绝对不得新增设定。
+  const abortController = new AbortController();
+  const timeoutId = window.setTimeout(() => {
+    abortController.abort();
+  }, ASK_AI_TIMEOUT_MS);
 
-【汤面】
-${story.surface}
+  try {
+    const res = await fetch(BACKEND_CHAT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: q,
+        story: {
+          id: story.id,
+          title: story.title,
+          surface: story.surface,
+          bottom: story.bottom,
+        },
+      }),
+      signal: abortController.signal,
+    });
 
-【汤底】
-${story.bottom}
+    const rawText = await res.text().catch(() => "");
+    const trimmedText = rawText.trim();
+    let json: unknown = null;
+    let plainMessage: string | null = null;
+    if (trimmedText.length > 0) {
+      try {
+        json = JSON.parse(trimmedText) as unknown;
+      } catch {
+        plainMessage =
+          trimmedText.length <= 200 && !isProbablyHtml(trimmedText)
+            ? trimmedText
+            : null;
+      }
+    }
 
-规则（非常重要）：
-1) 你只能输出以下三个词之一，且必须完全一致：是 / 否 / 无关
-2) 不要输出任何标点、解释、换行、引导语、附加文本
+    if (!res.ok) {
+      const backendMessage = pickBackendMessage(json);
+      throw new Error(
+        backendMessage ?? plainMessage ?? `后端服务异常（${res.status}）`,
+      );
+    }
 
-示例：
-Q: 他死了吗？\nA: 是
-Q: 他是自杀吗？\nA: 无关
-Q: 他是女人吗？\nA: 否`;
+    if (isBackendChatError(json)) {
+      const backendMessage = pickBackendMessage(json);
+      throw new Error(backendMessage ?? plainMessage ?? "后端服务异常，请稍后重试");
+    }
 
-  const res = await fetch("/api/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "deepseek-chat",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: q },
-      ],
-      temperature: 0,
-      max_tokens: 8,
-    }),
-  });
+    if (!isBackendChatSuccess(json)) {
+      const backendMessage = pickBackendMessage(json);
+      throw new Error(backendMessage ?? plainMessage ?? "后端响应异常，请稍后重试");
+    }
 
-  const json = (await res.json().catch(() => null)) as TAiAskResponse | null;
-  if (!res.ok) {
-    const msg = json?.error?.message ?? `AI 服务异常（${res.status}）`;
-    throw new Error(msg);
+    const answer = json.answer.trim();
+    const allowed = new Set(["是", "否", "无关"]);
+    if (!allowed.has(answer)) {
+      throw new Error(
+        "后端返回的答案不符合规范（只允许：是/否/无关）。请你换个方式重新提问，例如补充主体或动作。",
+      );
+    }
+
+    return answer;
+  } catch (err: unknown) {
+    const error =
+      err instanceof Error ? err : new Error("未知错误");
+
+    if (import.meta.env.DEV) {
+      console.warn("askAI failed", { message: error.message });
+    }
+
+    if (error.name === "AbortError") {
+      throw new Error("请求超时，请稍后重试");
+    }
+
+    if (error instanceof TypeError) {
+      throw new Error("网络异常，无法连接到后端服务");
+    }
+
+    const trimmedMessage = error.message.trim();
+    if (trimmedMessage) throw new Error(trimmedMessage);
+
+    throw new Error("网络异常，无法连接到后端服务");
+  } finally {
+    window.clearTimeout(timeoutId);
   }
-
-  const content =
-    typeof json?.choices?.[0]?.message?.content === "string"
-      ? json.choices[0].message.content.trim()
-      : "";
-
-  const allowed = new Set(["是", "否", "无关"]);
-  if (!allowed.has(content)) {
-    throw new Error(
-      "AI 刚才没有按规范回答（只允许：是/否/无关）。请你换个方式重新提问，例如补充主体或动作。",
-    );
-  }
-
-  return content;
 }

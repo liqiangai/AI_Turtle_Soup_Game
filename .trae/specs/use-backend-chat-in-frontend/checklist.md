@@ -1,0 +1,5 @@
+- [x] askAI 通过 POST http://localhost:3000/api/chat 获取回答
+- [x] askAI 函数签名保持不变，且 question 校验仍生效
+- [x] 后端返回非 2xx / 非预期 JSON / 网络错误时有友好错误提示
+- [x] web 构建通过（npm run build）
+- [x] 手动回归：后端可用/不可用两种场景均符合预期

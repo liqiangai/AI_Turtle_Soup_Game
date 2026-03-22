@@ -135,6 +135,13 @@ body {
     animation: chatSpinner 800ms linear infinite;
   }
 
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
   .solved-celebration {
     animation: solvedGlow 1200ms ease-out both;
   }

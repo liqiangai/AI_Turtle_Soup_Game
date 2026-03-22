@@ -1,0 +1,5 @@
+- [x] POST /api/chat 存在并按 spec 接收 question 与 story
+- [x] DeepSeek API Key 从环境变量读取，不在日志/响应泄露
+- [x] 成功时返回 answer 且只可能是：是/否/无关
+- [x] 失败时返回统一错误格式与合理 HTTP 状态码
+- [x] 本地启动与手动调用验证通过（api）
