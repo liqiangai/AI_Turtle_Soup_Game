@@ -5,6 +5,13 @@
  */
 export type TPuzzleDifficulty = "easy" | "medium" | "hard";
 
+export type TChatRole = "user" | "ai";
+
+export type TChatMessage = {
+  role: TChatRole;
+  content: string;
+};
+
 export type TPuzzle = {
   id: string;
   title: string;
