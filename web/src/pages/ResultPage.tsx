@@ -3,7 +3,7 @@
  * - 后续将展示：完整汤底（仅结算可见）、关键提问节点、提示使用次数等
  * - 注意：Level 4（完整汤底）仅在本页或结算流程可获取（见 AGENTS/TECH_DESIGN）
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Message } from "../components/game/Message";
 import { stories } from "../data/stories";
@@ -144,12 +144,49 @@ export function ResultPage() {
     );
   }
 
+  const isSolved = endReason === "solved_by_submit";
+  const confetti = [
+    { left: "10%", bg: "bg-amber-300/80", dx: "-40px", dr: "120deg", d: "0ms" },
+    { left: "18%", bg: "bg-cyan-300/70", dx: "30px", dr: "-140deg", d: "40ms" },
+    { left: "26%", bg: "bg-indigo-300/70", dx: "-20px", dr: "90deg", d: "80ms" },
+    { left: "34%", bg: "bg-amber-200/70", dx: "50px", dr: "-110deg", d: "120ms" },
+    { left: "42%", bg: "bg-emerald-300/70", dx: "-55px", dr: "160deg", d: "160ms" },
+    { left: "58%", bg: "bg-amber-300/80", dx: "45px", dr: "-160deg", d: "60ms" },
+    { left: "66%", bg: "bg-cyan-200/70", dx: "-35px", dr: "130deg", d: "100ms" },
+    { left: "74%", bg: "bg-indigo-200/70", dx: "20px", dr: "-90deg", d: "140ms" },
+    { left: "82%", bg: "bg-rose-200/70", dx: "-50px", dr: "150deg", d: "180ms" },
+    { left: "90%", bg: "bg-amber-200/70", dx: "35px", dr: "-120deg", d: "220ms" },
+  ] as const;
+
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="relative min-h-screen overflow-hidden bg-slate-900 text-slate-100">
+      {isSolved ? (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 solved-celebration">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.22),transparent_55%)]" />
+          </div>
+          <div className="absolute inset-0 overflow-hidden">
+            {confetti.map((c, idx) => (
+              <div
+                key={idx}
+                className={`absolute top-[-12px] h-2 w-2 rounded-sm ${c.bg} solved-confetti`}
+                style={
+                  {
+                    left: c.left,
+                    ["--dx"]: c.dx,
+                    ["--dr"]: c.dr,
+                    ["--d"]: c.d,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
         <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-6 shadow-lg">
           <div className="text-xs font-semibold tracking-wide text-slate-300">
-            本局结算
+            本局结果
           </div>
           <h1 className="mt-2 text-2xl font-semibold text-amber-400">
             {story?.title ?? "未找到该故事"}

@@ -50,7 +50,7 @@ export default function App() {
                 ].join(" ")
               }
             >
-              结算
+              结果
             </NavLink>
             <NavLink
               to="/auth"

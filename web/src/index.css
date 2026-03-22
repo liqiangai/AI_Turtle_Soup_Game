@@ -68,6 +68,38 @@ body {
     }
   }
 
+  @keyframes solvedGlow {
+    0% {
+      opacity: 0;
+      transform: scale(0.98);
+      filter: blur(8px);
+    }
+    40% {
+      opacity: 1;
+      transform: scale(1);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.02);
+      filter: blur(10px);
+    }
+  }
+
+  @keyframes solvedConfetti {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, -12px, 0) rotate(0deg);
+    }
+    10% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--dx), 260px, 0) rotate(var(--dr));
+    }
+  }
+
   .result-reveal-content {
     animation: resultRevealFade 420ms ease-out both;
   }
@@ -103,6 +135,15 @@ body {
     animation: chatSpinner 800ms linear infinite;
   }
 
+  .solved-celebration {
+    animation: solvedGlow 1200ms ease-out both;
+  }
+
+  .solved-confetti {
+    animation: solvedConfetti 1200ms ease-out both;
+    animation-delay: var(--d);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .result-reveal-content {
       animation: none;
@@ -120,6 +161,12 @@ body {
     .chat-spinner {
       animation: none;
       transform: none;
+    }
+
+    .solved-celebration,
+    .solved-confetti {
+      animation: none;
+      opacity: 0;
     }
   }
 }
