@@ -12,6 +12,10 @@ export type TChatMessage = {
   content: string;
 };
 
+export type TGameStatus = "in_progress" | "ended";
+
+export type TEndReason = "abandoned_by_user" | "reveal_bottom" | "unknown";
+
 export type TPuzzle = {
   id: string;
   title: string;

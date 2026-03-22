@@ -3,17 +3,16 @@
  * - 后续将包含：汤面展示、聊天问答、自动板书、渐进解锁汤底入口
  * - 本页将成为核心交互页面（见 PRD 3.3）
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChatBox } from "../components/game/ChatBox";
 import { stories } from "../data/stories";
 import { askAI } from "../services/api";
-import type { TChatMessage } from "../types/domain";
+import type { TChatMessage, TEndReason, TGameStatus } from "../types/domain";
 
 export function GamePage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isBottomOpen, setIsBottomOpen] = useState(false);
 
   const [messages, setMessages] = useState<TChatMessage[]>([
     {
@@ -28,6 +27,51 @@ export function GamePage() {
     if (!id) return undefined;
     return stories.find((s) => s.id === id);
   }, [id]);
+
+  const [confirm, setConfirm] = useState<null | "reveal" | "abandon">(null);
+
+  useEffect(() => {
+    if (!story) return;
+    try {
+      sessionStorage.setItem("gameStatus", "in_progress" satisfies TGameStatus);
+      sessionStorage.removeItem("endReason");
+      sessionStorage.removeItem("lastStoryId");
+      sessionStorage.removeItem("lastMessages");
+    } catch {
+      void 0;
+    }
+  }, [story?.id]);
+
+  function persistEndState(endReason: TEndReason, persistMessages: boolean) {
+    if (!story) return;
+    try {
+      sessionStorage.setItem("gameStatus", "ended" satisfies TGameStatus);
+      sessionStorage.setItem("endReason", endReason);
+      if (persistMessages) {
+        sessionStorage.setItem("lastStoryId", story.id);
+        sessionStorage.setItem("lastMessages", JSON.stringify(messages));
+      } else {
+        sessionStorage.removeItem("lastStoryId");
+        sessionStorage.removeItem("lastMessages");
+      }
+    } catch {
+      void 0;
+    }
+  }
+
+  function handleRevealBottom() {
+    if (!story) return;
+    persistEndState("reveal_bottom", true);
+    const search = new URLSearchParams({ storyId: story.id });
+    navigate(`/result?${search.toString()}`, {
+      state: { storyId: story.id, messages, endReason: "reveal_bottom" },
+    });
+  }
+
+  function handleAbandonGame() {
+    persistEndState("abandoned_by_user", false);
+    navigate("/");
+  }
 
   async function handleSend(content: string) {
     if (!story) return;
@@ -118,15 +162,15 @@ export function GamePage() {
                 <div className="mt-2 flex gap-2 sm:mt-0">
                   <button
                     type="button"
-                    onClick={() => setIsBottomOpen(true)}
                     className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900"
+                    onClick={() => setConfirm("reveal")}
                   >
                     查看汤底
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate("/result")}
                     className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300"
+                    onClick={() => setConfirm("abandon")}
                   >
                     结束游戏
                   </button>
@@ -152,40 +196,48 @@ export function GamePage() {
             </div>
             </div>
 
-          {isBottomOpen ? (
-            <div className="fixed inset-0 z-50">
-              <button
-                type="button"
-                className="absolute inset-0 bg-black/60"
-                onClick={() => setIsBottomOpen(false)}
-                aria-label="关闭"
-              />
-              <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-950/90 p-6 shadow-2xl backdrop-blur">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-base font-semibold text-amber-200">
-                      汤底（剧透）
-                    </div>
-                    <div className="mt-1 text-xs text-slate-400">
-                      这会直接揭示真相，建议卡住时再看。
-                    </div>
+            {confirm ? (
+              <div className="fixed inset-0 z-50">
+                <button
+                  type="button"
+                  className="absolute inset-0 bg-black/60"
+                  onClick={() => setConfirm(null)}
+                  aria-label="关闭"
+                />
+                <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-950/90 p-6 shadow-2xl backdrop-blur">
+                  <div className="text-base font-semibold text-amber-200">
+                    {confirm === "reveal" ? "查看汤底（剧透）？" : "结束本局？"}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsBottomOpen(false)}
-                    className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 transition hover:bg-slate-900"
-                  >
-                    关闭
-                  </button>
-                </div>
-                <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
-                    {story.bottom}
+                  <div className="mt-2 text-sm text-slate-200">
+                    {confirm === "reveal"
+                      ? "将结束本局并进入结果页揭晓完整汤底；该操作无法撤回。"
+                      : "将返回大厅（可稍后再玩）。"}
+                  </div>
+
+                  <div className="mt-5 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirm(null)}
+                      className="flex-1 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-amber-400/30 hover:bg-slate-900"
+                    >
+                      {confirm === "reveal" ? "先不看" : "继续推理"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const action = confirm;
+                        setConfirm(null);
+                        if (action === "reveal") handleRevealBottom();
+                        else handleAbandonGame();
+                      }}
+                      className="flex-1 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-300"
+                    >
+                      {confirm === "reveal" ? "确认查看" : "确认结束"}
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
           </>
         )}
       </div>
