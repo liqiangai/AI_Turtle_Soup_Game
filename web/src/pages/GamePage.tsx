@@ -35,6 +35,7 @@ export function GamePage() {
   const [isHintOpen, setIsHintOpen] = useState(false);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [submitText, setSubmitText] = useState("");
+  const [isSurfaceOpen, setIsSurfaceOpen] = useState(false);
 
   useEffect(() => {
     if (!storyId) return;
@@ -51,6 +52,7 @@ export function GamePage() {
     setSubmitText("");
     setIsHintOpen(false);
     setIsSubmitOpen(false);
+    setIsSurfaceOpen(false);
   }, [storyId]);
 
   function persistEndState(endReason: TEndReason, persistMessages: boolean) {
@@ -183,9 +185,9 @@ export function GamePage() {
 
   return (
     <div className="h-dvh overflow-hidden bg-slate-900 text-slate-100">
-      <div className="mx-auto flex h-full max-w-6xl flex-col px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+      <div className="mx-auto flex h-full max-w-6xl flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6">
         {!story ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-6 shadow-lg">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-lg sm:p-6">
             <div className="text-base font-semibold text-amber-200">
               未找到该故事
             </div>
@@ -201,7 +203,7 @@ export function GamePage() {
         ) : (
           <>
             <div className="grid min-h-0 flex-1 grid-rows-[auto_1fr] gap-4 lg:grid-cols-[420px_1fr] lg:grid-rows-1 lg:gap-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-lg sm:p-6">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
@@ -250,13 +252,29 @@ export function GamePage() {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
-                <div className="text-xs font-semibold tracking-wide text-slate-300">
-                  汤面
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold tracking-wide text-slate-300">
+                    汤面
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsSurfaceOpen((v) => !v)}
+                    className="rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-100 transition hover:border-amber-400/30 hover:bg-slate-900"
+                  >
+                    {isSurfaceOpen ? "收起" : "展开"}
+                  </button>
                 </div>
-                <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
-                  {story.surface}
-                </div>
+
+                {isSurfaceOpen ? (
+                  <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
+                    {story.surface}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-slate-100">
+                    <div className="truncate">{story.surface}</div>
+                  </div>
+                )}
               </div>
             </div>
 

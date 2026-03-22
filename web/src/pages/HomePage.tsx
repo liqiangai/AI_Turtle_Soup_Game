@@ -42,7 +42,7 @@ export function HomePage() {
                 选择故事开始
               </a>
               <div className="text-xs text-slate-400">
-                提示：点击任意卡片进入 <span className="text-slate-300">/game/:id</span>
+                提示：点击任意卡片开始对局
               </div>
             </div>
           </div>

@@ -20,7 +20,35 @@ export default function App() {
             to="/"
             className="inline-flex items-center gap-2 text-base font-semibold tracking-wide text-amber-300 hover:text-amber-200"
           >
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-amber-500/15 ring-1 ring-amber-400/20" />
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-b from-amber-400/25 to-amber-400/5 ring-1 ring-amber-300/25">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4 text-amber-200"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M7.5 12.2c0-2.1 1.9-3.8 4.5-3.8s4.5 1.7 4.5 3.8c0 2-1.6 3.6-3.8 3.8"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M12 16.8h.01"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M12 21a9 9 0 1 0-9-9"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  opacity="0.6"
+                />
+              </svg>
+            </span>
             AI 海龟汤
           </Link>
 
