@@ -1,7 +1,7 @@
 /**
  * API 服务入口：启动 Express 服务并提供基础测试接口。
  * - 端口：PORT（默认 3001）
- * - CORS：默认允许 http://localhost:5173，支持 FRONTEND_ORIGIN 覆盖
+ * - CORS：默认允许 http://localhost:5173，支持 FRONTEND_ORIGINS（逗号分隔）覆盖
  */
 
 import crypto from "node:crypto";
@@ -92,7 +92,10 @@ function sendFallback(res: express.Response, requestId: string, reason: string):
 }
 
 const PORT = parsePort(process.env.PORT, 3001);
-const FRONTEND_ORIGIN = normalizeOrigin(process.env.FRONTEND_ORIGIN ?? "http://localhost:5173");
+const FRONTEND_ORIGINS: string[] = (process.env.FRONTEND_ORIGINS ?? "http://localhost:5173")
+  .split(",")
+  .map(normalizeOrigin)
+  .filter((o) => o.length > 0);
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com/v1";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
@@ -132,11 +135,27 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: "64kb" }));
 
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    const origin = req.headers.origin;
+    if (origin && FRONTEND_ORIGINS.includes(normalizeOrigin(origin))) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type,x-request-id");
+      res.setHeader("Access-Control-Max-Age", "86400");
+    }
+    res.status(204).end();
+    return;
+  }
+  next();
+});
+
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true);
-      if (normalizeOrigin(origin) === FRONTEND_ORIGIN) return callback(null, true);
+      if (FRONTEND_ORIGINS.includes(normalizeOrigin(origin))) return callback(null, true);
       return callback(new Error("CORS_NOT_ALLOWED"));
     },
     credentials: true
@@ -500,7 +519,7 @@ app.use(
 
 export function startServer(): void {
   const server = app.listen(PORT, () => {
-    console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
+    console.info("[api] started", { port: PORT, frontendOrigins: FRONTEND_ORIGINS });
   });
 
   const SHUTDOWN_TIMEOUT_MS = 10_000;
