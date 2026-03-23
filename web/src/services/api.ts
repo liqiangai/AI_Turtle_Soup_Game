@@ -4,12 +4,20 @@ import { toFriendlyErrorMessage } from "./userError";
 type TBackendChatSuccessResponse = {
   ok: true;
   answer: string;
+  fallback?: boolean;
+  notice?: string;
   message?: string;
 };
 
 type TBackendChatErrorResponse = {
   ok: false;
   message?: string;
+};
+
+export type TAskAIResult = {
+  answer: string;
+  fallback?: boolean;
+  notice?: string;
 };
 
 const BACKEND_CHAT_ENDPOINT = "/api/chat";
@@ -68,7 +76,10 @@ function isBackendChatError(
   return isRecord(payload) && payload.ok === false;
 }
 
-export async function askAI(question: string, story: TStory): Promise<string> {
+export async function askAI(
+  question: string,
+  story: TStory,
+): Promise<TAskAIResult> {
   const q = question.trim();
   if (!q) {
     throw new Error("请输入你的问题");
@@ -137,7 +148,15 @@ export async function askAI(question: string, story: TStory): Promise<string> {
       throw new Error("AI 回答格式异常，请重试");
     }
 
-    return answer;
+    const fallback = json.fallback === true;
+    const notice =
+      typeof json.notice === "string" && json.notice.trim() ? json.notice : undefined;
+
+    return {
+      answer,
+      fallback: fallback || undefined,
+      notice,
+    };
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error("未知错误");
 

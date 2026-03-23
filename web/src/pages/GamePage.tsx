@@ -47,7 +47,10 @@ export function GamePage() {
   function pushSystemNotice(text: string) {
     const t = text.trim();
     if (!t) return;
-    const content = t.startsWith("（系统提示）") ? t : `（系统提示）${t}`;
+    const content =
+      t.startsWith("（系统提示）") || t.startsWith("(系统提示") || t.startsWith("系统提示")
+        ? t
+        : `（系统提示）${t}`;
     setMessages((prev) => [...prev, { role: "ai", content }]);
   }
 
@@ -227,8 +230,11 @@ export function GamePage() {
     setPendingAction("ask");
 
     try {
-      const reply = await askAI(content, story);
-      setMessages((prev) => [...prev, { role: "ai", content: reply }]);
+      const result = await askAI(content, story);
+      setMessages((prev) => [...prev, { role: "ai", content: result.answer }]);
+      if (result.fallback || result.notice) {
+        pushSystemNotice(result.notice ?? "系统提示：请换一种问法再问一次");
+      }
       return true;
     } catch (err: unknown) {
       const message = toFriendlyErrorMessage(

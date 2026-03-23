@@ -1,0 +1,5 @@
+- [x] 后端 system prompt 更清晰且包含边界示例
+- [x] 后端对上游异常与不规范输出有兜底：返回合法三选一并携带提示字段
+- [x] 前端在 fallback/notice 时展示“系统提示：请重新提问”
+- [x] `question=22`、`question=??`、`question=伞是雨伞吗` 回归结果符合预期
+- [x] web/api `npm run build` 通过
