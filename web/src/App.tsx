@@ -80,7 +80,7 @@ export default function App() {
             >
               结果
             </NavLink>
-            <NavLink
+            {/* <NavLink
               to="/auth"
               className={({ isActive }) =>
                 [
@@ -92,7 +92,7 @@ export default function App() {
               }
             >
               登录
-            </NavLink>
+            </NavLink> */}
           </nav>
         </div>
       </header>
