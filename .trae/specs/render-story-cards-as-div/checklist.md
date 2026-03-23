@@ -1,0 +1,5 @@
+- [x] 故事列表每个卡片根节点为 div（非 a/link）
+- [x] 点击卡片可跳转到对应 `/game/:id`
+- [x] Tab 可聚焦卡片，Enter/Space 可触发跳转
+- [x] 卡片 hover/focus 样式与布局一致（所有故事均一致）
+- [x] `npm run build`（web）通过

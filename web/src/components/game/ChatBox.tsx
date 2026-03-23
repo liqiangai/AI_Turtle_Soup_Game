@@ -5,24 +5,33 @@ import { Message } from "./Message";
 export function ChatBox(props: {
   messages: TChatMessage[];
   isPending?: boolean;
-  onSend?: (content: string) => void;
+  isInputDisabled?: boolean;
+  onSend?: (content: string) => void | boolean | Promise<void | boolean>;
   footerActions?: ReactNode;
 }) {
   const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const trimmedInput = useMemo(() => input.trim(), [input]);
+  const isLocked = Boolean(props.isPending || props.isInputDisabled || isSending);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [props.messages.length, props.isPending]);
 
-  function send() {
-    if (!trimmedInput || props.isPending) return;
+  async function send() {
+    if (!trimmedInput || isLocked) return;
 
     const content = trimmedInput;
-    props.onSend?.(content);
-    setInput("");
+    setIsSending(true);
+    try {
+      const result = await props.onSend?.(content);
+      if (result === false) return;
+      setInput("");
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
@@ -63,28 +72,34 @@ export function ChatBox(props: {
         ) : null}
         <div className="flex items-end gap-2">
           <textarea
+            data-testid="chat-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={props.isPending}
+            disabled={isLocked}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                send();
+                void send();
               }
             }}
             rows={2}
             placeholder={
-              props.isPending ? "AI 思考中…（请稍候）" : "输入问题…（Enter 发送，Shift+Enter 换行）"
+              props.isPending
+                ? "AI 思考中…（请稍候）"
+                : props.isInputDisabled
+                  ? "操作进行中…（请稍候）"
+                  : "输入问题…（Enter 发送，Shift+Enter 换行）"
             }
             className="min-h-[44px] flex-1 resize-none rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-base text-slate-100 outline-none transition focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
           />
           <button
             type="button"
-            onClick={send}
-            disabled={!trimmedInput || props.isPending}
+            data-testid="chat-send"
+            onClick={() => void send()}
+            disabled={!trimmedInput || isLocked}
             className="h-[44px] shrink-0 rounded-xl bg-amber-400 px-4 text-base font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
           >
-            {props.isPending ? (
+            {isLocked ? (
               <span className="inline-flex items-center gap-2">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/40 border-t-slate-900" />
                 发送中

@@ -8,7 +8,7 @@ import { stories } from "../data/stories";
  */
 export function HomePage() {
   return (
-    <div className="relative">
+    <div className="page-enter relative w-full">
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:px-8 sm:py-7">
           <div className="pointer-events-none absolute inset-0">

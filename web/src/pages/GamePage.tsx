@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChatBox } from "../components/game/ChatBox";
 import { stories } from "../data/stories";
 import { askAI } from "../services/api";
+import { toFriendlyErrorMessage } from "../services/userError";
 import type { TChatMessage, TEndReason, TGameStatus } from "../types/domain";
 
 export function GamePage() {
@@ -21,7 +22,9 @@ export function GamePage() {
         "欢迎来到 AI 海龟汤。你可以从‘是/否/无关’角度提问。\n\n（提示：AI 回答基于你配置的 DeepSeek API Key）",
     },
   ]);
-  const [isPending, setIsPending] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    null | "ask" | "unlock_hint" | "submit_solution"
+  >(null);
 
   const story = useMemo(() => {
     if (!id) return undefined;
@@ -36,6 +39,39 @@ export function GamePage() {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [submitText, setSubmitText] = useState("");
   const [isSurfaceOpen, setIsSurfaceOpen] = useState(false);
+  const isBusy = pendingAction !== null;
+  const isAskPending = pendingAction === "ask";
+  const isUnlockPending = pendingAction === "unlock_hint";
+  const isSubmitPending = pendingAction === "submit_solution";
+
+  function pushSystemNotice(text: string) {
+    const t = text.trim();
+    if (!t) return;
+    const content = t.startsWith("（系统提示）") ? t : `（系统提示）${t}`;
+    setMessages((prev) => [...prev, { role: "ai", content }]);
+  }
+
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    if (!timeoutMs) return promise;
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        const err = new Error("timeout");
+        err.name = "AbortError";
+        reject(err);
+      }, timeoutMs);
+
+      promise.then(
+        (value) => {
+          window.clearTimeout(timeoutId);
+          resolve(value);
+        },
+        (err) => {
+          window.clearTimeout(timeoutId);
+          reject(err);
+        },
+      );
+    });
+  }
 
   useEffect(() => {
     if (!storyId) return;
@@ -88,18 +124,44 @@ export function GamePage() {
   }
 
   function handleUnlockHint() {
-    if (!story) return;
-    const nextLevel = Math.min(3, hintLevel + 1);
-    setHintLevel(nextLevel);
-    try {
-      sessionStorage.setItem("hintLevel", String(nextLevel));
-    } catch {
-      void 0;
-    }
-    setIsHintOpen(true);
+    void (async () => {
+      if (!story || isBusy) return;
+      setPendingAction("unlock_hint");
+      const startAt = window.performance.now();
+      try {
+        await withTimeout(
+          Promise.resolve().then(() => {
+            if (hintLevel >= 3) {
+              setIsHintOpen(true);
+              pushSystemNotice("线索已全部解锁。");
+              return;
+            }
+            const nextLevel = Math.min(3, hintLevel + 1);
+            setHintLevel(nextLevel);
+            try {
+              sessionStorage.setItem("hintLevel", String(nextLevel));
+            } catch {
+              void 0;
+            }
+            setIsHintOpen(true);
+          }),
+          10_000,
+        );
+      } catch (err: unknown) {
+        pushSystemNotice(toFriendlyErrorMessage(err, "解锁失败，请稍后重试"));
+      } finally {
+        const elapsed = window.performance.now() - startAt;
+        const waitMs = Math.max(0, 250 - elapsed);
+        if (waitMs) {
+          await new Promise((r) => window.setTimeout(r, waitMs));
+        }
+        setPendingAction((cur) => (cur === "unlock_hint" ? null : cur));
+      }
+    })();
   }
 
   function handleSubmitSolution() {
+    if (isBusy) return;
     setIsSubmitOpen(true);
   }
 
@@ -121,32 +183,62 @@ export function GamePage() {
     });
   }
 
-  async function handleSend(content: string) {
-    if (!story) return;
+  async function handleConfirmSubmit() {
+    if (!story || isBusy) return;
+    const t = submitText.trim();
+    if (!t) {
+      pushSystemNotice("请先写下你的还原内容，再提交。");
+      return;
+    }
+
+    setPendingAction("submit_solution");
+    const startAt = window.performance.now();
+    try {
+      const result = await withTimeout(
+        Promise.resolve().then(() => evaluateSolution(t)),
+        10_000,
+      );
+      if (result.ok) {
+        setIsSubmitOpen(false);
+        finalizeSolved();
+        return;
+      }
+      pushSystemNotice(
+        "还原还不够完整：建议补上“人物/物品/关键动作/为什么会发生”的因果链，再试一次。",
+      );
+    } catch (err: unknown) {
+      const message = toFriendlyErrorMessage(err, "提交失败，请稍后重试");
+      pushSystemNotice(message);
+    } finally {
+      const elapsed = window.performance.now() - startAt;
+      const waitMs = Math.max(0, 250 - elapsed);
+      if (waitMs) {
+        await new Promise((r) => window.setTimeout(r, waitMs));
+      }
+      setPendingAction((cur) => (cur === "submit_solution" ? null : cur));
+    }
+  }
+
+  async function handleSend(content: string): Promise<boolean> {
+    if (!story || isBusy) return false;
 
     // 先把用户消息加上
     setMessages((prev) => [...prev, { role: "user", content }]);
-    setIsPending(true);
+    setPendingAction("ask");
 
     try {
       const reply = await askAI(content, story);
       setMessages((prev) => [...prev, { role: "ai", content: reply }]);
+      return true;
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === "string"
-            ? err
-            : "AI 服务暂时不可用，请稍后重试";
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          content: `（系统提示）${message}`,
-        },
-      ]);
+      const message = toFriendlyErrorMessage(
+        err,
+        "AI 服务暂时不可用，请稍后重试",
+      );
+      pushSystemNotice(message);
+      return false;
     } finally {
-      setIsPending(false);
+      setPendingAction((cur) => (cur === "ask" ? null : cur));
     }
   }
 
@@ -184,8 +276,8 @@ export function GamePage() {
           : "border-slate-700 bg-slate-800/50 text-slate-200";
 
   return (
-    <div className="h-dvh overflow-hidden bg-slate-900 text-slate-100">
-      <div className="mx-auto flex h-full max-w-6xl flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6">
+    <div className="page-enter min-h-0 flex-1 overflow-hidden bg-slate-900 text-slate-100">
+      <div className="mx-auto flex h-full min-h-0 max-w-6xl flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6">
         {!story ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-lg sm:p-6">
             <div className="text-base font-semibold text-amber-200">
@@ -206,8 +298,8 @@ export function GamePage() {
             <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-lg sm:p-6">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h1 className="truncate text-2xl font-semibold text-amber-400">
+                  <div className="flex items-start gap-3">
+                    <h1 className="ui-title-clamp min-w-0 flex-1 text-2xl font-semibold leading-tight text-amber-400">
                       {story.title}
                     </h1>
                     {difficultyLabel ? (
@@ -237,14 +329,16 @@ export function GamePage() {
                 <div className="mt-2 flex gap-2 sm:mt-0">
                   <button
                     type="button"
-                    className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900"
+                    disabled={isBusy}
+                    className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => setConfirm("reveal")}
                   >
                     查看汤底
                   </button>
                   <button
                     type="button"
-                    className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300"
+                    disabled={isBusy}
+                    className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => setConfirm("abandon")}
                   >
                     结束游戏
@@ -259,6 +353,7 @@ export function GamePage() {
                   </div>
                   <button
                     type="button"
+                    data-testid="surface-toggle"
                     onClick={() => setIsSurfaceOpen((v) => !v)}
                     className="rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-100 transition hover:border-amber-400/30 hover:bg-slate-900"
                   >
@@ -267,12 +362,17 @@ export function GamePage() {
                 </div>
 
                 {isSurfaceOpen ? (
-                  <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
+                  <div
+                    data-testid="story-surface"
+                    className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-100"
+                  >
                     {story.surface}
                   </div>
                 ) : (
-                  <div className="mt-2 text-sm text-slate-100">
-                    <div className="truncate">{story.surface}</div>
+                  <div data-testid="story-surface" className="mt-2 min-w-0 text-sm text-slate-100">
+                    <div className="min-w-0 line-clamp-2 text-wrap-anywhere">
+                      {story.surface}
+                    </div>
                   </div>
                 )}
               </div>
@@ -281,7 +381,8 @@ export function GamePage() {
             <div className="min-h-0">
               <ChatBox
                 messages={messages}
-                isPending={isPending}
+                isPending={isAskPending}
+                isInputDisabled={isBusy}
                 onSend={handleSend}
                 footerActions={
                   story ? (
@@ -289,14 +390,23 @@ export function GamePage() {
                       <button
                         type="button"
                         onClick={handleUnlockHint}
-                        className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900"
+                        disabled={isBusy}
+                        className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        查看线索
+                        {isUnlockPending ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-200/40 border-t-slate-200" />
+                            解锁中
+                          </span>
+                        ) : (
+                          "查看线索"
+                        )}
                       </button>
                       <button
                         type="button"
                         onClick={handleSubmitSolution}
-                        className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-200 shadow-lg transition hover:border-amber-300/40 hover:bg-amber-400/15"
+                        disabled={isBusy}
+                        className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-200 shadow-lg transition hover:border-amber-300/40 hover:bg-amber-400/15 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         提交还原
                       </button>
@@ -402,7 +512,10 @@ export function GamePage() {
                 <button
                   type="button"
                   className="absolute inset-0 bg-black/60"
-                  onClick={() => setIsSubmitOpen(false)}
+                  onClick={() => {
+                    if (isSubmitPending) return;
+                    setIsSubmitOpen(false);
+                  }}
                   aria-label="关闭"
                 />
                 <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-950/90 p-6 shadow-2xl backdrop-blur">
@@ -417,6 +530,7 @@ export function GamePage() {
                     <textarea
                       value={submitText}
                       onChange={(e) => setSubmitText(e.target.value)}
+                      disabled={isSubmitPending}
                       rows={5}
                       className="w-full resize-none rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/20"
                       placeholder="例如：他打的不是雨伞，而是遮阳伞，所以挡不住雨…"
@@ -426,34 +540,29 @@ export function GamePage() {
                   <div className="mt-5 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsSubmitOpen(false)}
-                      className="flex-1 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-amber-400/30 hover:bg-slate-900"
+                      onClick={() => {
+                        if (isSubmitPending) return;
+                        setIsSubmitOpen(false);
+                      }}
+                      disabled={isSubmitPending}
+                      className="flex-1 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-amber-400/30 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       继续推理
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        const t = submitText.trim();
-                        const result = evaluateSolution(t);
-                        if (!t) return;
-                        setIsSubmitOpen(false);
-                        if (result.ok) {
-                          finalizeSolved();
-                          return;
-                        }
-                        setMessages((prev) => [
-                          ...prev,
-                          {
-                            role: "ai",
-                            content:
-                              "（系统提示）还原不够完整：建议补上“人物/物品/关键动作/为什么会发生”的因果链，再试一次。",
-                          },
-                        ]);
-                      }}
-                      className="flex-1 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-300"
+                      onClick={() => void handleConfirmSubmit()}
+                      disabled={isSubmitPending}
+                      className="flex-1 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      提交
+                      {isSubmitPending ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/40 border-t-slate-900" />
+                          提交中
+                        </span>
+                      ) : (
+                        "提交"
+                      )}
                     </button>
                   </div>
                 </div>

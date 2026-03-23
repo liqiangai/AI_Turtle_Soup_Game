@@ -14,8 +14,8 @@ export function Message(props: { message: TChatMessage }) {
       <div
         className={
           isUser
-            ? "flex max-w-[85%] flex-row-reverse items-end gap-2"
-            : "flex max-w-[85%] items-end gap-2"
+            ? "flex min-w-0 max-w-[85%] flex-row-reverse items-end gap-2"
+            : "flex min-w-0 max-w-[85%] items-end gap-2"
         }
       >
         <div
@@ -97,7 +97,7 @@ export function Message(props: { message: TChatMessage }) {
                 : "rounded-2xl rounded-bl-md border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-100 shadow-lg"
           }
         >
-          <div className="whitespace-pre-wrap leading-relaxed">
+          <div className="min-w-0 whitespace-pre-wrap break-words leading-relaxed text-wrap-anywhere">
             {message.content}
           </div>
         </div>

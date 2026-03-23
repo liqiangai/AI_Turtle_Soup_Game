@@ -1,0 +1,8 @@
+- [x] 前端关键异步流程均有一致 loading 状态与防重复提交
+- [x] 前端错误提示统一且不展示原始 HTML/长响应体
+- [x] 动画效果统一且不影响移动端滚动性能
+- [x] 移动端故事详情页布局一致（标题/汤面/消息不被裁切）
+- [x] 后端每个请求都有 requestId 且日志包含 method/path/status/durationMs
+- [x] 后端错误统一返回 `{ ok:false, message, requestId }`，404/方法不允许也为 JSON
+- [x] 接口文档入口可访问且覆盖 `/api/chat` 与 `/api/test`
+- [x] web 构建通过（`npm run build`）

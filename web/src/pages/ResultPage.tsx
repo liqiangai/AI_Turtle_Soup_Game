@@ -126,7 +126,7 @@ export function ResultPage() {
 
   if (!storyId) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100">
+      <div className="page-enter w-full min-h-screen bg-slate-900 text-slate-100">
         <div className="mx-auto max-w-md p-6">
           <h1 className="text-2xl font-semibold text-amber-400">结果</h1>
           <p className="mt-2 text-sm text-slate-200">未找到本局信息。</p>
@@ -159,7 +159,7 @@ export function ResultPage() {
   ] as const;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 text-slate-100">
+    <div className="page-enter relative w-full min-h-screen overflow-hidden bg-slate-900 text-slate-100">
       {isSolved ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 solved-celebration">

@@ -2,11 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --ui-motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ui-motion-distance: 6px;
+    --ui-motion-page: 220ms;
+    --ui-motion-item: 220ms;
+  }
+}
+
 body {
   margin: 0;
 }
 
 @layer utilities {
+  @keyframes uiFadeUpIn {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, var(--ui-motion-distance), 0);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
   @keyframes resultRevealFade {
     0% {
       opacity: 0;
@@ -100,6 +120,10 @@ body {
     }
   }
 
+  .page-enter {
+    animation: uiFadeUpIn var(--ui-motion-page) var(--ui-motion-ease-out) both;
+  }
+
   .result-reveal-content {
     animation: resultRevealFade 420ms ease-out both;
   }
@@ -128,11 +152,23 @@ body {
   }
 
   .chat-item-in {
-    animation: chatItemIn 180ms ease-out both;
+    animation: uiFadeUpIn var(--ui-motion-item) var(--ui-motion-ease-out) both;
   }
 
   .chat-spinner {
     animation: chatSpinner 800ms linear infinite;
+  }
+
+  .text-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
   }
 
   .line-clamp-2 {
@@ -140,6 +176,28 @@ body {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .ui-title-clamp {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  @media (min-width: 640px) {
+    .ui-title-clamp {
+      -webkit-line-clamp: 1;
+    }
   }
 
   .solved-celebration {
@@ -152,6 +210,12 @@ body {
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .page-enter {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
     .result-reveal-content {
       animation: none;
       opacity: 1;

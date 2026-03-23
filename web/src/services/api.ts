@@ -1,4 +1,5 @@
 import type { TStory } from "../data/stories";
+import { toFriendlyErrorMessage } from "./userError";
 
 type TBackendChatSuccessResponse = {
   ok: true;
@@ -34,13 +35,17 @@ function pickBackendMessage(payload: unknown): string | null {
   if (!isRecord(payload)) return null;
 
   const message = payload.message;
-  if (typeof message === "string" && message.trim()) return message.trim();
+  if (typeof message === "string" && message.trim()) {
+    const friendly = toFriendlyErrorMessage(message, "");
+    return friendly || null;
+  }
 
   const error = payload.error;
   if (isRecord(error)) {
     const errorMessage = error.message;
     if (typeof errorMessage === "string" && errorMessage.trim()) {
-      return errorMessage.trim();
+      const friendly = toFriendlyErrorMessage(errorMessage, "");
+      return friendly || null;
     }
   }
 
@@ -112,49 +117,35 @@ export async function askAI(question: string, story: TStory): Promise<string> {
     if (!res.ok) {
       const backendMessage = pickBackendMessage(json);
       throw new Error(
-        backendMessage ?? plainMessage ?? `后端服务异常（${res.status}）`,
+        backendMessage ?? plainMessage ?? "服务暂时不可用，请稍后重试",
       );
     }
 
     if (isBackendChatError(json)) {
       const backendMessage = pickBackendMessage(json);
-      throw new Error(backendMessage ?? plainMessage ?? "后端服务异常，请稍后重试");
+      throw new Error(backendMessage ?? plainMessage ?? "服务暂时不可用，请稍后重试");
     }
 
     if (!isBackendChatSuccess(json)) {
       const backendMessage = pickBackendMessage(json);
-      throw new Error(backendMessage ?? plainMessage ?? "后端响应异常，请稍后重试");
+      throw new Error(backendMessage ?? plainMessage ?? "服务响应异常，请稍后重试");
     }
 
     const answer = json.answer.trim();
     const allowed = new Set(["是", "否", "无关"]);
     if (!allowed.has(answer)) {
-      throw new Error(
-        "后端返回的答案不符合规范（只允许：是/否/无关）。请你换个方式重新提问，例如补充主体或动作。",
-      );
+      throw new Error("AI 回答格式异常，请重试");
     }
 
     return answer;
   } catch (err: unknown) {
-    const error =
-      err instanceof Error ? err : new Error("未知错误");
+    const error = err instanceof Error ? err : new Error("未知错误");
 
     if (import.meta.env.DEV) {
       console.warn("askAI failed", { message: error.message });
     }
 
-    if (error.name === "AbortError") {
-      throw new Error("请求超时，请稍后重试");
-    }
-
-    if (error instanceof TypeError) {
-      throw new Error("网络异常，无法连接到后端服务");
-    }
-
-    const trimmedMessage = error.message.trim();
-    if (trimmedMessage) throw new Error(trimmedMessage);
-
-    throw new Error("网络异常，无法连接到后端服务");
+    throw new Error(toFriendlyErrorMessage(error, "服务暂时不可用，请稍后重试"));
   } finally {
     window.clearTimeout(timeoutId);
   }

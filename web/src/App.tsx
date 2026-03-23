@@ -7,7 +7,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
  */
 export default function App() {
   return (
-    <div className="relative min-h-screen bg-[#0B1220] text-slate-100">
+    <div className="relative flex min-h-dvh flex-col bg-[#0B1220] text-slate-100">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 left-1/2 h-72 w-[48rem] -translate-x-1/2 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="absolute -top-10 right-[-10rem] h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
@@ -97,7 +97,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative">
+      <main className="relative flex min-h-0 flex-1 flex-col">
         <Outlet />
       </main>
     </div>
