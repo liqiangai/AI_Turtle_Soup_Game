@@ -8,6 +8,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.app = void 0;
+exports.startServer = startServer;
 const node_crypto_1 = __importDefault(require("node:crypto"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -85,9 +87,9 @@ const ENABLE_DEBUG_ENDPOINTS = process.env.ENABLE_DEBUG_ENDPOINTS === "1";
 if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.trim().length === 0) {
     console.error("[api] config_missing", { missing: ["DEEPSEEK_API_KEY"] });
 }
-const app = (0, express_1.default)();
-app.disable("x-powered-by");
-app.use((req, res, next) => {
+exports.app = (0, express_1.default)();
+exports.app.disable("x-powered-by");
+exports.app.use((req, res, next) => {
     const incomingRequestId = req.header("x-request-id");
     const trimmed = typeof incomingRequestId === "string" ? incomingRequestId.trim() : "";
     const requestId = trimmed.length > 0 && trimmed.length <= 128 ? trimmed : node_crypto_1.default.randomUUID();
@@ -107,8 +109,8 @@ app.use((req, res, next) => {
     });
     next();
 });
-app.use(express_1.default.json({ limit: "64kb" }));
-app.use((0, cors_1.default)({
+exports.app.use(express_1.default.json({ limit: "64kb" }));
+exports.app.use((0, cors_1.default)({
     origin(origin, callback) {
         if (!origin)
             return callback(null, true);
@@ -118,13 +120,13 @@ app.use((0, cors_1.default)({
     },
     credentials: true
 }));
-app.get("/api/docs", (_req, res) => {
+exports.app.get("/api/docs", (_req, res) => {
     res.status(200).json({
         ok: true,
         openapiUrl: "/api/openapi.json"
     });
 });
-app.get("/api/openapi.json", (_req, res) => {
+exports.app.get("/api/openapi.json", (_req, res) => {
     res.status(200).json({
         openapi: "3.0.3",
         info: {
@@ -217,20 +219,20 @@ app.get("/api/openapi.json", (_req, res) => {
         }
     });
 });
-app.all("/api/test", (req, res, next) => {
+exports.app.all("/api/test", (req, res, next) => {
     if (req.method === "GET")
         return next();
     res.setHeader("Allow", "GET");
     sendError(res, 405, "Method Not Allowed");
 });
-app.get("/api/test", (_req, res) => {
+exports.app.get("/api/test", (_req, res) => {
     if (ENABLE_DEBUG_ENDPOINTS && _req.query.force500 === "1") {
         throw new Error("FORCED_INTERNAL_ERROR");
     }
     res.status(200).json({ ok: true });
 });
 if (ENABLE_DEEPSEEK_MOCK) {
-    app.post("/__mock__/v1/chat/completions", (_req, res) => {
+    exports.app.post("/__mock__/v1/chat/completions", (_req, res) => {
         res.status(200).json({
             id: node_crypto_1.default.randomUUID(),
             object: "chat.completion",
@@ -246,13 +248,13 @@ if (ENABLE_DEEPSEEK_MOCK) {
         });
     });
 }
-app.all("/api/chat", (req, res, next) => {
+exports.app.all("/api/chat", (req, res, next) => {
     if (req.method === "POST")
         return next();
     res.setHeader("Allow", "POST");
     sendError(res, 405, "Method Not Allowed");
 });
-app.post("/api/chat", async (req, res) => {
+exports.app.post("/api/chat", async (req, res) => {
     const requestId = getResponseRequestId(res, () => getRequestId(req));
     const QUESTION_MAX_LENGTH = 200;
     const STORY_SURFACE_MAX_LENGTH = 2000;
@@ -427,10 +429,10 @@ app.post("/api/chat", async (req, res) => {
         clearTimeout(timeoutId);
     }
 });
-app.use("/api", (_req, res) => {
+exports.app.use("/api", (_req, res) => {
     sendError(res, 404, "Not Found");
 });
-app.use((err, req, res, _next) => {
+exports.app.use((err, req, res, _next) => {
     const requestId = getResponseRequestId(res, () => getRequestId(req));
     if (err instanceof Error && err.message === "CORS_NOT_ALLOWED") {
         sendError(res, 403, "Origin not allowed");
@@ -447,6 +449,11 @@ app.use((err, req, res, _next) => {
     console.error("[api] unhandled_error", { requestId, message });
     sendError(res, 500, "Internal Server Error");
 });
-app.listen(PORT, () => {
-    console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
-});
+function startServer() {
+    exports.app.listen(PORT, () => {
+        console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
+    });
+}
+if (require.main === module) {
+    startServer();
+}

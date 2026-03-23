@@ -8,8 +8,14 @@ const shouldUseDist =
   process.env.USE_DIST === "1" || process.env.NODE_ENV === "production";
 
 if (shouldUseDist && fs.existsSync(distEntry)) {
-  require(distEntry);
+  const mod = require(distEntry);
+  if (mod && typeof mod.startServer === "function") {
+    mod.startServer();
+  }
 } else {
   require("tsx/cjs");
-  require(srcEntry);
+  const mod = require(srcEntry);
+  if (mod && typeof mod.startServer === "function") {
+    mod.startServer();
+  }
 }

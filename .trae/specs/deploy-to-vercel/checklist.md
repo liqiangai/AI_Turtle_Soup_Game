@@ -1,0 +1,5 @@
+- [x] Vercel 部署策略已明确（Web/API 双项目与对应设置项）
+- [x] Web 支持 `VITE_API_BASE_URL` 且默认同域 `/api/*` 不变
+- [x] API 提供 Vercel Functions 的 `/api/test` 与 `/api/chat`
+- [x] 部署文档包含 Vercel 步骤与环境变量清单（Web/API）
+- [x] `web` 与 `api` 构建通过，最小联调验证通过

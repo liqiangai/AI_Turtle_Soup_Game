@@ -103,7 +103,7 @@ if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.trim().length === 0) {
   console.error("[api] config_missing", { missing: ["DEEPSEEK_API_KEY"] });
 }
 
-const app = express();
+export const app = express();
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -498,6 +498,12 @@ app.use(
   }
 );
 
-app.listen(PORT, () => {
-  console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
-});
+export function startServer(): void {
+  app.listen(PORT, () => {
+    console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
+  });
+}
+
+if (require.main === module) {
+  startServer();
+}
