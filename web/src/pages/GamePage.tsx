@@ -38,6 +38,7 @@ export function GamePage() {
   const [isHintOpen, setIsHintOpen] = useState(false);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [submitText, setSubmitText] = useState("");
+  const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const [isSurfaceOpen, setIsSurfaceOpen] = useState(false);
   const isBusy = pendingAction !== null;
   const isAskPending = pendingAction === "ask";
@@ -165,6 +166,7 @@ export function GamePage() {
 
   function handleSubmitSolution() {
     if (isBusy) return;
+    setSubmitNotice(null);
     setIsSubmitOpen(true);
   }
 
@@ -190,7 +192,9 @@ export function GamePage() {
     if (!story || isBusy) return;
     const t = submitText.trim();
     if (!t) {
-      pushSystemNotice("请先写下你的还原内容，再提交。");
+      const msg = "请先写下你的还原内容，再提交。";
+      setSubmitNotice(msg);
+      pushSystemNotice(msg);
       return;
     }
 
@@ -206,11 +210,13 @@ export function GamePage() {
         finalizeSolved();
         return;
       }
-      pushSystemNotice(
-        "还原还不够完整：建议补上“人物/物品/关键动作/为什么会发生”的因果链，再试一次。",
-      );
+      const msg =
+        "还原还不够完整：建议补上“人物/物品/关键动作/为什么会发生”的因果链，再试一次。";
+      setSubmitNotice(msg);
+      pushSystemNotice(msg);
     } catch (err: unknown) {
       const message = toFriendlyErrorMessage(err, "提交失败，请稍后重试");
+      setSubmitNotice(message);
       pushSystemNotice(message);
     } finally {
       const elapsed = window.performance.now() - startAt;
@@ -535,13 +541,25 @@ export function GamePage() {
                   <div className="mt-4">
                     <textarea
                       value={submitText}
-                      onChange={(e) => setSubmitText(e.target.value)}
+                      onChange={(e) => {
+                        setSubmitText(e.target.value);
+                        setSubmitNotice(null);
+                      }}
                       disabled={isSubmitPending}
                       rows={5}
                       className="w-full resize-none rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/20"
                       placeholder="例如：他打的不是雨伞，而是遮阳伞，所以挡不住雨…"
                     />
                   </div>
+
+                  {submitNotice ? (
+                    <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                      <div className="flex gap-2">
+                        <div className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-rose-400/30 bg-rose-500/20" />
+                        <div className="min-w-0 leading-relaxed">（系统提示）{submitNotice}</div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="mt-5 flex gap-2">
                     <button
