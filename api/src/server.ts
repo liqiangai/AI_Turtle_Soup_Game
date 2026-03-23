@@ -499,9 +499,31 @@ app.use(
 );
 
 export function startServer(): void {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
   });
+
+  const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+  function shutdown(signal: string): void {
+    console.info("[api] shutdown_initiated", { signal });
+    server.close((err) => {
+      if (err) {
+        console.error("[api] shutdown_error", { message: err.message });
+        process.exit(1);
+      }
+      console.info("[api] shutdown_complete", { signal });
+      process.exit(0);
+    });
+
+    setTimeout(() => {
+      console.error("[api] shutdown_timeout", { timeoutMs: SHUTDOWN_TIMEOUT_MS });
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref();
+  }
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 if (require.main === module) {
