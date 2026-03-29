@@ -2,7 +2,7 @@
 /**
  * API 服务入口：启动 Express 服务并提供基础测试接口。
  * - 端口：PORT（默认 3001）
- * - CORS：默认允许 http://localhost:5173，支持 FRONTEND_ORIGIN 覆盖
+ * - CORS：默认允许 http://localhost:5173，支持 FRONTEND_ORIGINS（逗号分隔）覆盖
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -78,7 +78,10 @@ function sendFallback(res, requestId, reason) {
     });
 }
 const PORT = parsePort(process.env.PORT, 3001);
-const FRONTEND_ORIGIN = normalizeOrigin(process.env.FRONTEND_ORIGIN ?? "http://localhost:5173");
+const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS ?? "http://localhost:5173")
+    .split(",")
+    .map(normalizeOrigin)
+    .filter((o) => o.length > 0);
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com/v1";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
@@ -110,11 +113,26 @@ exports.app.use((req, res, next) => {
     next();
 });
 exports.app.use(express_1.default.json({ limit: "64kb" }));
+exports.app.use((req, res, next) => {
+    if (req.method === "OPTIONS") {
+        const origin = req.headers.origin;
+        if (origin && FRONTEND_ORIGINS.includes(normalizeOrigin(origin))) {
+            res.setHeader("Access-Control-Allow-Origin", origin);
+            res.setHeader("Access-Control-Allow-Credentials", "true");
+            res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+            res.setHeader("Access-Control-Allow-Headers", "Content-Type,x-request-id");
+            res.setHeader("Access-Control-Max-Age", "86400");
+        }
+        res.status(204).end();
+        return;
+    }
+    next();
+});
 exports.app.use((0, cors_1.default)({
     origin(origin, callback) {
         if (!origin)
             return callback(null, true);
-        if (normalizeOrigin(origin) === FRONTEND_ORIGIN)
+        if (FRONTEND_ORIGINS.includes(normalizeOrigin(origin)))
             return callback(null, true);
         return callback(new Error("CORS_NOT_ALLOWED"));
     },
@@ -450,9 +468,27 @@ exports.app.use((err, req, res, _next) => {
     sendError(res, 500, "Internal Server Error");
 });
 function startServer() {
-    exports.app.listen(PORT, () => {
-        console.info("[api] started", { port: PORT, frontendOrigin: FRONTEND_ORIGIN });
+    const server = exports.app.listen(PORT, () => {
+        console.info("[api] started", { port: PORT, frontendOrigins: FRONTEND_ORIGINS });
     });
+    const SHUTDOWN_TIMEOUT_MS = 10000;
+    function shutdown(signal) {
+        console.info("[api] shutdown_initiated", { signal });
+        server.close((err) => {
+            if (err) {
+                console.error("[api] shutdown_error", { message: err.message });
+                process.exit(1);
+            }
+            console.info("[api] shutdown_complete", { signal });
+            process.exit(0);
+        });
+        setTimeout(() => {
+            console.error("[api] shutdown_timeout", { timeoutMs: SHUTDOWN_TIMEOUT_MS });
+            process.exit(1);
+        }, SHUTDOWN_TIMEOUT_MS).unref();
+    }
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
 }
 if (require.main === module) {
     startServer();
