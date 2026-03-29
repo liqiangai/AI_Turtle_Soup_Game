@@ -92,7 +92,9 @@ function sendFallback(res: express.Response, requestId: string, reason: string):
 }
 
 const PORT = parsePort(process.env.PORT, 3001);
-const FRONTEND_ORIGINS: string[] = (process.env.FRONTEND_ORIGINS ?? "http://localhost:5173")
+const FRONTEND_ORIGINS: string[] = (
+  process.env.FRONTEND_ORIGIN ?? process.env.FRONTEND_ORIGINS ?? "http://localhost:5173"
+)
   .split(",")
   .map(normalizeOrigin)
   .filter((o) => o.length > 0);
@@ -353,9 +355,12 @@ app.post("/api/chat", async (req, res) => {
   console.info("[api] chat_request", {
     requestId,
     questionLength: question.length,
+    questionText: question,
     storyId: safeStoryId && safeStoryId.length > 0 ? safeStoryId : undefined,
     storySurfaceLength: surface.length,
-    storyBottomLength: bottom.length
+    storySurfaceText: surface,
+    storyBottomLength: bottom.length,
+    storyBottomText: bottom
   });
 
   const systemPrompt = [
@@ -367,24 +372,24 @@ app.post("/api/chat", async (req, res) => {
     "3) 不要泄露、暗示或复述汤底；不要生成线索、推理过程或建议。",
     "",
     "【判定规则】",
-    "A) 先判断用户输入是否为“单一、明确、可判定”的是非问题：",
-    "- 纯数字/乱码/无意义字符/非问句短语/陈述句/指令/寒暄/复述：输出 无关",
-    "- 同时包含多个问题、多个条件，或需要你补充信息才能判定：输出 无关",
+    "A) 首先判断用户输入类型：",
+    "- 纯数字/乱码/无意义字符/指令/寒暄：输出 无关",
     "- 询问原因、过程、解释、细节、提示、要求讲汤底/泄露信息：输出 无关",
-    "B) 若是明确是非问题：只依据汤面+汤底的事实判定：",
+    "",
+    "B) 若用户输入是【是非问句】：依据汤面+汤底的事实判定：",
     "- 与事实一致：输出 是",
     "- 与事实矛盾：输出 否",
     "- 汤面/汤底无法确定真伪：输出 无关",
-    "C) 不确定时一律输出 无关。",
+    "",
+    "C) 若用户输入是【猜测/陈述/推理】：判断内容与汤底的一致性：",
+    "- 猜测的核心内容与汤底一致（关键点正确）：输出 是",
+    "- 猜测的核心内容与汤底矛盾（关键点错误）：输出 否",
+    "- 猜测内容模糊、无法判断或与汤底无关：输出 无关",
+    "",
+    "D) 不确定时一律输出 无关。",
     "",
     "【示例（仅示规则与格式，不代表本局事实）】",
     "用户：22",
-    "助手：无关",
-    "用户：??",
-    "助手：无关",
-    "用户：asdj!@#",
-    "助手：无关",
-    "用户：伞是雨伞吗",
     "助手：无关",
     "用户：告诉我汤底",
     "助手：无关",
@@ -392,7 +397,11 @@ app.post("/api/chat", async (req, res) => {
     "助手：无关",
     "用户：他死了吗？（汤底明确写“他死了”）",
     "助手：是",
-    "用户：他是被枪杀的吗？（汤底明确无枪或明确非他杀）",
+    "用户：他是被枪杀的吗？（汤底明确无枪）",
+    "助手：否",
+    "用户：【猜测】电梯里没有人，是箱子撞了他。（若汤底确实如此）",
+    "助手：是",
+    "用户：【猜测】他是被鬼推的。（与汤底矛盾）",
     "助手：否",
     "",
     "【本局信息】",
@@ -419,14 +428,6 @@ app.post("/api/chat", async (req, res) => {
         max_tokens: 16,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: "22" },
-          { role: "assistant", content: "无关" },
-          { role: "user", content: "??" },
-          { role: "assistant", content: "无关" },
-          { role: "user", content: "伞是雨伞吗" },
-          { role: "assistant", content: "无关" },
-          { role: "user", content: "请解释原因" },
-          { role: "assistant", content: "无关" },
           { role: "user", content: question }
         ]
       }),
@@ -472,12 +473,14 @@ app.post("/api/chat", async (req, res) => {
     if (!answer) {
       console.error("[api] ai_upstream_invalid_answer", {
         requestId,
+        rawContent: message.content,
         answerLength: message.content.length
       });
       sendFallback(res, requestId, "upstream_invalid_answer");
       return;
     }
 
+    console.log("[api] ai_response", { requestId, rawContent: message.content, answer });
     res.status(200).json({ ok: true, answer });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
