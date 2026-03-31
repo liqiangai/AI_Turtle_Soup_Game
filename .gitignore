@@ -4,3 +4,5 @@ api/node_modules/*
 !.env.example
 web/.env
 api/.env
+MINIPROGRAM_CONFIG.md
+project.config.json
