@@ -1,7 +1,7 @@
 "use strict";
 /**
  * API 服务入口：启动 Express 服务并提供基础测试接口。
- * - 端口：PORT（默认 3001）
+ * - 端口：PORT（默认 3000）
  * - CORS：默认允许 http://localhost:5173，支持 FRONTEND_ORIGINS（逗号分隔）覆盖
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
@@ -77,7 +77,7 @@ function sendFallback(res, requestId, reason) {
         notice: "系统提示：请换一种问法再问一次"
     });
 }
-const PORT = parsePort(process.env.PORT, 3001);
+const PORT = parsePort(process.env.PORT, 3000);
 const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGIN ?? process.env.FRONTEND_ORIGINS ?? "http://localhost:5173")
     .split(",")
     .map(normalizeOrigin)

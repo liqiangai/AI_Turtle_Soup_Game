@@ -117,7 +117,7 @@ npm install
 
 ```env
 # 服务端口
-PORT=3001
+PORT=3000
 
 # 前端域名（CORS 白名单，逗号分隔）
 FRONTEND_ORIGIN=http://localhost:5173

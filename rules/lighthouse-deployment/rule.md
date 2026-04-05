@@ -58,7 +58,7 @@ execute_command(
 
 # 3. 启动容器
 execute_command(
-  Command: "docker run -d --name 容器名 -p 3001:3000 --restart always -e DEEPSEEK_API_KEY='你的密钥' 镜像名"
+  Command: "docker run -d --name 容器名 -p 3000:3000 --restart always -e DEEPSEEK_API_KEY='你的密钥' 镜像名"
 )
 ```
 
@@ -80,7 +80,7 @@ server {
 
     # API 反向代理
     location /api/ {
-        proxy_pass http://localhost:3001/api/;
+        proxy_pass http://localhost:3000/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

@@ -1,6 +1,6 @@
 /**
  * API 服务入口：启动 Express 服务并提供基础测试接口。
- * - 端口：PORT（默认 3001）
+ * - 端口：PORT（默认 3000）
  * - CORS：默认允许 http://localhost:5173，支持 FRONTEND_ORIGINS（逗号分隔）覆盖
  */
 
@@ -91,7 +91,7 @@ function sendFallback(res: express.Response, requestId: string, reason: string):
   });
 }
 
-const PORT = parsePort(process.env.PORT, 3001);
+const PORT = parsePort(process.env.PORT, 3000);
 const FRONTEND_ORIGINS: string[] = (
   process.env.FRONTEND_ORIGIN ?? process.env.FRONTEND_ORIGINS ?? "http://localhost:5173"
 )

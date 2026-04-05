@@ -124,7 +124,7 @@ npm ci
 - `FRONTEND_ORIGIN`：允许的前端 Origin（默认 `http://localhost:5173`）
 
 本地/自建服务器部署常用变量：
-- `PORT`：服务端口（默认 `3001`）
+- `PORT`：服务端口（默认 `3000`）
 
 可选变量：
 - `DEEPSEEK_BASE_URL`：DeepSeek API 基础地址（默认 `https://api.deepseek.com/v1`）

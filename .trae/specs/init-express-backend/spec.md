@@ -26,7 +26,7 @@
 
 #### Scenario: 正常启动
 - **WHEN** 开发者执行启动命令（dev/start）
-- **THEN** 服务监听在 `PORT`（默认 3001），启动无报错
+- **THEN** 服务监听在 `PORT`（默认 3000），启动无报错
 
 ### Requirement: CORS Allow Frontend Access
 系统 SHALL 配置 CORS，允许前端在本地开发环境访问后端 API。

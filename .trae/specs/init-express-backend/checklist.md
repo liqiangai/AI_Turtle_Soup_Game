@@ -1,4 +1,4 @@
 - [x] 仓库新增 `api/` 后端项目且依赖包含 express、cors
-- [x] 后端服务能启动并监听端口（默认 3001 或配置 PORT）
+- [x] 后端服务能启动并监听端口（默认 3000 或配置 PORT）
 - [x] CORS 默认允许 http://localhost:5173，且可通过 FRONTEND_ORIGIN 覆盖
 - [x] GET /api/test 返回 200 与 JSON，且包含正确 CORS Header
