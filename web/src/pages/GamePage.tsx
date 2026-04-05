@@ -312,11 +312,11 @@ export function GamePage() {
         ) : (
           <>
             <div className="grid min-h-0 flex-1 grid-rows-[auto_1fr] gap-4 lg:grid-cols-[420px_1fr] lg:grid-rows-1 lg:gap-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-lg sm:p-6">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-3 shadow-lg sm:p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <div className="flex items-start gap-3">
-                    <h1 className="ui-title-clamp min-w-0 flex-1 text-2xl font-semibold leading-tight text-amber-400">
+                  <div className="flex items-start gap-2">
+                    <h1 className="ui-title-clamp min-w-0 flex-1 text-xl font-semibold leading-tight text-amber-400 sm:text-2xl">
                       {story.title}
                     </h1>
                     {difficultyLabel ? (
@@ -330,13 +330,13 @@ export function GamePage() {
                   <div className="mt-1 text-xs text-slate-400">
                     只回答：是 / 否 / 无关
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                  <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
                     <span>线索 Level {hintLevel}/3</span>
                     <span>
                       提问 {Math.min(questionCount, targetQuestions)}/{targetQuestions}
                     </span>
                   </div>
-                  <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
+                  <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-800">
                     <div
                       className="h-full rounded-full bg-amber-400 transition-[width] duration-200 ease-out"
                       style={{ width: `${progressPct}%` }}
@@ -347,7 +347,7 @@ export function GamePage() {
                   <button
                     type="button"
                     disabled={isBusy}
-                    className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => setConfirm("reveal")}
                   >
                     查看汤底
@@ -355,7 +355,7 @@ export function GamePage() {
                   <button
                     type="button"
                     disabled={isBusy}
-                    className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl bg-amber-400 px-3 py-1.5 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => setConfirm("abandon")}
                   >
                     结束游戏
@@ -363,7 +363,7 @@ export function GamePage() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+              <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/40 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-xs font-semibold tracking-wide text-slate-300">
                     汤面
@@ -381,12 +381,15 @@ export function GamePage() {
                 {isSurfaceOpen ? (
                   <div
                     data-testid="story-surface"
-                    className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-100"
+                    className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-100"
                   >
                     {story.surface}
                   </div>
                 ) : (
-                  <div data-testid="story-surface" className="mt-2 min-w-0 text-sm text-slate-100">
+                  <div
+                    data-testid="story-surface"
+                    className="mt-1 min-w-0 text-sm text-slate-100"
+                  >
                     <div className="min-w-0 line-clamp-2 text-wrap-anywhere">
                       {story.surface}
                     </div>
