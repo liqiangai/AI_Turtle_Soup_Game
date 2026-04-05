@@ -126,11 +126,11 @@ export function ResultPage() {
 
   if (!storyId) {
     return (
-      <div className="page-enter w-full min-h-screen bg-slate-900 text-slate-100">
-        <div className="mx-auto max-w-md p-6">
+      <div className="page-enter w-full bg-slate-900 text-slate-100">
+        <div className="mx-auto max-w-md p-4">
           <h1 className="text-2xl font-semibold text-amber-400">结果</h1>
           <p className="mt-2 text-sm text-slate-200">未找到本局信息。</p>
-          <div className="mt-6">
+          <div className="mt-4">
             <button
               type="button"
               onClick={handleBackToLobby}
@@ -184,15 +184,15 @@ export function ResultPage() {
         </div>
       ) : null}
       <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-6 shadow-lg">
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-lg">
           <div className="text-xs font-semibold tracking-wide text-slate-300">
             本局结果
           </div>
-          <h1 className="mt-2 text-2xl font-semibold text-amber-400">
+          <h1 className="mt-1 text-xl font-semibold text-amber-400 sm:text-2xl">
             {story?.title ?? "未找到该故事"}
           </h1>
           {endReason ? (
-            <div className="mt-2 text-xs text-slate-400">
+            <div className="mt-1 text-xs text-slate-400">
               {endReason === "reveal_bottom"
                 ? "你选择查看汤底揭晓（已剧透）"
                 : endReason === "abandoned_by_user"
@@ -202,6 +202,23 @@ export function ResultPage() {
                   : "本局已结束"}
             </div>
           ) : null}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={handlePlayAgain}
+            className="rounded-xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300"
+          >
+            再来一局
+          </button>
+          <button
+            type="button"
+            onClick={handleBackToLobby}
+            className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm font-semibold text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900"
+          >
+            返回大厅
+          </button>
         </div>
 
         <div className="rounded-2xl border border-amber-400/20 bg-gradient-to-b from-amber-400/10 to-slate-950/40 p-6 shadow-lg">
@@ -229,7 +246,7 @@ export function ResultPage() {
         </div>
 
         {messages?.length ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-6 shadow-lg">
+          <div className="rounded-2xl border border-slate-700 bg-slate-850/40 p-6 shadow-lg">
             <div className="flex items-center justify-between gap-3">
               <div className="text-base font-semibold text-slate-100">
                 本局对话
@@ -254,23 +271,6 @@ export function ResultPage() {
             ) : null}
           </div>
         ) : null}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={handlePlayAgain}
-            className="rounded-xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-amber-300"
-          >
-            再来一局
-          </button>
-          <button
-            type="button"
-            onClick={handleBackToLobby}
-            className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm font-semibold text-slate-100 shadow-lg transition hover:border-amber-400/30 hover:bg-slate-900"
-          >
-            返回大厅
-          </button>
-        </div>
       </div>
     </div>
   );
