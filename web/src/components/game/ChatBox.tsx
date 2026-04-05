@@ -36,8 +36,8 @@ export function ChatBox(props: {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-800 bg-slate-950/40 shadow-lg">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+    <div className="flex h-full min-h-0 max-h-[calc(100dvh-220px)] flex-col rounded-2xl border border-slate-800 bg-slate-950/40 shadow-lg sm:max-h-[calc(100dvh-240px)] lg:max-h-none">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 max-h-[min(58dvh,520px)] sm:max-h-[min(60dvh,560px)] lg:max-h-none">
         <div className="space-y-3">
           {props.messages.length === 0 ? (
             <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4 text-sm text-slate-200">
