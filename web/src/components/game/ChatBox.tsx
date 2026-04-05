@@ -6,6 +6,7 @@ export function ChatBox(props: {
   messages: TChatMessage[];
   isPending?: boolean;
   isInputDisabled?: boolean;
+  disabledReason?: string;
   onSend?: (content: string) => void | boolean | Promise<void | boolean>;
   footerActions?: ReactNode;
 }) {
@@ -87,7 +88,7 @@ export function ChatBox(props: {
               props.isPending
                 ? "AI 思考中…（请稍候）"
                 : props.isInputDisabled
-                  ? "操作进行中…（请稍候）"
+                  ? props.disabledReason?.trim() || "暂时无法提问"
                   : "输入问题…（Enter 发送，Shift+Enter 换行）"
             }
             className="min-h-[44px] flex-1 resize-none rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-base text-slate-100 outline-none transition focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"

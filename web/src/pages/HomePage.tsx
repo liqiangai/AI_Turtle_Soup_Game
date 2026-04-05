@@ -1,6 +1,7 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { GameCard } from "../components/lobby/GameCard";
-import { stories } from "../data/stories";
+import { stories, type TStoryCategory } from "../data/stories";
 
 /**
  * 首页 / 游戏大厅
@@ -8,6 +9,26 @@ import { stories } from "../data/stories";
  * - 使用响应式网格布局适配移动端与桌面端
  */
 export function HomePage() {
+  const categories = useMemo(() => {
+    const seen = new Set<TStoryCategory>();
+    const list: TStoryCategory[] = [];
+    for (const story of stories) {
+      if (seen.has(story.category)) continue;
+      seen.add(story.category);
+      list.push(story.category);
+    }
+    return list;
+  }, []);
+
+  const [selectedCategory, setSelectedCategory] = useState<
+    "全部" | TStoryCategory
+  >("全部");
+
+  const filteredStories = useMemo(() => {
+    if (selectedCategory === "全部") return stories;
+    return stories.filter((story) => story.category === selectedCategory);
+  }, [selectedCategory]);
+
   return (
     <div className="page-enter relative w-full">
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
@@ -97,19 +118,51 @@ export function HomePage() {
           <div>
             <div className="text-sm font-semibold text-slate-100">故事列表</div>
             <div className="mt-1 text-xs text-slate-400">
-              选择难度，开始你的第一轮推理。
+              选择主题分类，开始你的第一轮推理。
             </div>
           </div>
           <div className="hidden text-xs text-slate-500 sm:block">
-            共 {stories.length} 个故事
+            共 {filteredStories.length} 个故事
           </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={selectedCategory === "全部"}
+            className={[
+              "rounded-full border px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-amber-400/25",
+              selectedCategory === "全部"
+                ? "border-amber-400/40 bg-amber-400 text-slate-950"
+                : "border-white/10 bg-white/[0.02] text-slate-100 hover:border-amber-300/25 hover:bg-white/[0.04]",
+            ].join(" ")}
+            onClick={() => setSelectedCategory("全部")}
+          >
+            全部
+          </button>
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              aria-pressed={selectedCategory === category}
+              className={[
+                "rounded-full border px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-amber-400/25",
+                selectedCategory === category
+                  ? "border-amber-400/40 bg-amber-400 text-slate-950"
+                  : "border-white/10 bg-white/[0.02] text-slate-100 hover:border-amber-300/25 hover:bg-white/[0.04]",
+              ].join(" ")}
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
         </div>
 
         <div
           id="stories"
           className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5 xl:grid-cols-4"
         >
-          {stories.map((story) => (
+          {filteredStories.map((story) => (
             <GameCard key={story.id} story={story} />
           ))}
         </div>

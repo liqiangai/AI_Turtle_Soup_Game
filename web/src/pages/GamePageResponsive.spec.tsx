@@ -13,6 +13,7 @@ vi.mock("../data/stories", async () => {
         title:
           "极长标题布局回归：当标题特别特别特别特别特别特别特别特别特别特别特别长时也不应该在窄屏下被裁切或溢出",
         difficulty: "easy",
+        category: "其他",
         surface:
           "用于移动端窄屏回归：这段汤面会包含很长的连续字符以验证换行与不裁切——AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA。\n同时也包含正常中文长句，确认 line-clamp 与展开/收起在窄屏下稳定。",
         bottom:

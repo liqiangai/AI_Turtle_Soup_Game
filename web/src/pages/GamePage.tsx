@@ -19,7 +19,7 @@ export function GamePage() {
     {
       role: "ai",
       content:
-        "欢迎来到 AI 海龟汤。你可以从‘是/否/无关’角度提问。\n\n（提示：AI 回答基于你配置的 DeepSeek API Key）",
+        "欢迎来到 AI 海龟汤。你可以从‘是/否/无关’角度提问。\n\n（提示：AI回答基于DeepSeek能力）",
     },
   ]);
   const [pendingAction, setPendingAction] = useState<
@@ -230,6 +230,10 @@ export function GamePage() {
 
   async function handleSend(content: string): Promise<boolean> {
     if (!story || isBusy) return false;
+    if (questionCount >= targetQuestions) {
+      pushSystemNotice("提问次数已用完：请提交还原，或查看汤底结束本局。");
+      return false;
+    }
 
     // 先把用户消息加上
     setMessages((prev) => [...prev, { role: "user", content }]);
@@ -259,6 +263,7 @@ export function GamePage() {
     [messages],
   );
   const targetQuestions = 15;
+  const isQuestionLimitReached = questionCount >= targetQuestions;
   const progressPct = Math.round((hintLevel / 3) * 100);
 
   const revealedKeyPoints = useMemo(() => {
@@ -328,7 +333,7 @@ export function GamePage() {
                   <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
                     <span>线索 Level {hintLevel}/3</span>
                     <span>
-                      提问 {questionCount}/{targetQuestions}
+                      提问 {Math.min(questionCount, targetQuestions)}/{targetQuestions}
                     </span>
                   </div>
                   <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
@@ -394,7 +399,12 @@ export function GamePage() {
               <ChatBox
                 messages={messages}
                 isPending={isAskPending}
-                isInputDisabled={isBusy}
+                isInputDisabled={isBusy || isQuestionLimitReached}
+                disabledReason={
+                  isQuestionLimitReached && !isBusy
+                    ? "提问次数已用完：请提交还原，或查看汤底结束本局。"
+                    : undefined
+                }
                 onSend={handleSend}
                 footerActions={
                   story ? (

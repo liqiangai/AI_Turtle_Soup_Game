@@ -24,6 +24,8 @@ export function GameCard(props: { story: TStory }) {
         ? "border-amber-400/25 bg-amber-400/10 text-amber-200"
         : "border-rose-400/25 bg-rose-400/10 text-rose-200";
 
+  const categoryClass = "border-cyan-400/25 bg-cyan-400/10 text-cyan-200";
+
   const targetPath = `/game/${encodeURIComponent(story.id)}`;
   const goToGame = () => {
     navigate(targetPath);
@@ -53,20 +55,25 @@ export function GameCard(props: { story: TStory }) {
 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="ui-title-clamp text-base font-semibold text-slate-100 transition group-hover:text-amber-100">
-            {story.title}
-          </div>
-          <div className="mt-1 line-clamp-2 text-wrap-anywhere text-sm text-slate-300">
-            {story.surface}
-          </div>
+      <div className="min-w-0">
+        <div className="ui-title-clamp text-base font-semibold text-slate-100 transition group-hover:text-amber-100">
+          {story.title}
         </div>
-        <span
-          className={`shrink-0 rounded-full border px-2.5 py-1 text-xs tracking-wide ${difficultyClass}`}
-        >
-          {difficultyLabel}
-        </span>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs tracking-wide ${categoryClass}`}
+          >
+            {story.category}
+          </span>
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs tracking-wide ${difficultyClass}`}
+          >
+            {difficultyLabel}
+          </span>
+        </div>
+        <div className="mt-2 line-clamp-2 text-wrap-anywhere text-sm text-slate-300">
+          {story.surface}
+        </div>
       </div>
     </div>
   );
